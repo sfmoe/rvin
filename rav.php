@@ -11,8 +11,7 @@ https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows that you get vi
 Class Rav{
 
 public $url = "https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows";
-public $json_cache_file = "./cache.json";
-public $cache_time = 24;
+public $cache_time = 96;
 
 public $isthere = false;
 public $theshows = Array();
@@ -26,26 +25,47 @@ function __construct(){
 
 	public function getjson($url){
 
-		if(file_exists($this->json_cache_file) && (time() - filemtime($this->json_cache_file) < ($this->cache_time * 60 * 60))) {
-		$this->today($this->json_cache_file);
-		} else {
-			
-			$ch = curl_init($url);
-			curl_setopt($ch, CURLOPT_POST, 1);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, array());
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			$results = curl_exec($ch);
-			curl_close($ch);
-			file_put_contents($this->json_cache_file, $results);
-			$this->today($this->json_cache_file);
-		}
+
+	
+    $key = 'ravinia-00-mem';
+    $memcache = new Memcache;
+    $data = $memcache->get($key);
+    if ($data === false) {
+
+		$datas = ['data' => 'this', 'data2' => 'that'];
+		$datas = http_build_query($datas);
+		$context = [
+		'http' => [
+		'method' => 'POST',
+		'header' => "custom-header: custom-value\r\n" .
+		"custom-header-two: custome-value-2\r\n",
+		'content' => $datas
+		]
+		];
+		$context = stream_context_create($context);
+		$results = file_get_contents($this->url, false, $context);
+
+
+		$memcache->set($key, $results);
+		$data = $memcache->get($key); 
+		
+		$this->today($data);
+
+      
+    }else{
+    	$this->today($data);
+
+    }
+
+
 
 	
 
 	}
 
 	public function today($data){
-		$js = json_decode(file_get_contents($data));
+
+		$js = json_decode($data);
 		$today = date("l M d");
 		
 		foreach($js->d as $j=>$k){
