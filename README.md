@@ -3,4 +3,7 @@
 ##app-engine version
 
 quick php page to tell you if there is a Ravinia show today.
-main thing is that it makes a cached file of the ravinia schedule
+this cache uses memcached to try and not be a pest.
+
+
+there are two branches one for self hosted LAMP server "master" and one for Google App Engine, using memcached for cahce "gae"
