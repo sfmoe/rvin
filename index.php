@@ -1,3 +1,6 @@
+<?php
+date_default_timezone_set('America/Chicago');
+?>
 <html>
 <head>
 	<title>Is there a Ravinia show today?</title>
@@ -23,7 +26,7 @@
 </head>
 <body>
 
-<div style="text-align: center;">Today is <?php echo date("l, M d, Y"); ?>
+<div style="text-align: center;">Today is <?php echo date("l, M j, Y"); ?>
 <h1>Is there a Ravinia Show today?</h1>
 
 <?php
@@ -42,7 +45,7 @@ foreach ($rv->theshows as $shw) {
 			<li>Location: <?php echo $shw->ShowVenue; ?></li>
 			<li>Gates Open: <?php echo $shw->GatesOpen; ?></li>
 			<li><strong>Start Time</strong>: <?php echo $shw->ShowStart; ?></li>
-		
+
 		</ul>
 	</div>
 	<?php
