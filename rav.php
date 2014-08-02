@@ -1,5 +1,5 @@
-<?php 
-date_default_timezone_set('America/Chicago');
+<?php
+
 /*
 Check if there is a ravinia concert today.
 By: Moe Martinez
@@ -7,7 +7,7 @@ Url: http://github.com/sfmoe/rvin
 ravinia has this getcurrentshows json file here:
 https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows that you get via POST
 */
-
+date_default_timezone_set('America/Chicago');
 Class Rav{
 
 public $url = "https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows";
@@ -26,7 +26,7 @@ function __construct(){
 	public function getjson($url){
 
 
-	
+
     $key = 'ravinia-00-mem';
     $memcache = new Memcache;
     $data = $memcache->get($key);
@@ -47,11 +47,11 @@ function __construct(){
 
 
 		$memcache->set($key, $results);
-		$data = $memcache->get($key); 
-		
+		$data = $memcache->get($key);
+
 		$this->today($data);
 
-      
+
     }else{
     	$this->today($data);
 
@@ -59,20 +59,19 @@ function __construct(){
 
 
 
-	
+
 
 	}
 
 	public function today($data){
 
 		$js = json_decode($data);
-		$today = date("l M d");
-		
+		$today = date("l M j");
 		foreach($js->d as $j=>$k){
 		if($k->ShowDate == $today){
 			$this->isthere = true;
 			array_push($this->theshows, $k);
-			
+
 
 		}
 
