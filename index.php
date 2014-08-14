@@ -1,5 +1,6 @@
 <?php
 date_default_timezone_set('America/Chicago');
+require_once './rav.php';
 ?><html>
 <head>
 	<title>Is there a Ravinia show today?</title>
@@ -29,7 +30,6 @@ date_default_timezone_set('America/Chicago');
 <h1>Is there a Ravinia Show today?</h1>
 
 <?php
-require_once './rav.php';
 $rv = new Rav;
 if($rv->isthere == true){
 	echo "<div class='yes'>YES!</div>";
