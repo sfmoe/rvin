@@ -1,5 +1,5 @@
 <?php
-date_default_timezone_set('America/Chicago');
+
 /*
 Check if there is a ravinia concert today.
 By: Moe Martinez
@@ -10,44 +10,98 @@ https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows that you get vi
 
 Class Rav{
 
-public $url = "https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows";
-public $json_cache_file = "./cache.json";
-public $cache_time = 24;
 
+
+private $cache;
+private $memcache;
+private $json_cache_file = "./cache.json";
+private $cache_time = 96;
+private $cache_key = "RAV_MEM_KEY";
+private $cache_data = false;
+
+
+public $url = "https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows";
 public $isthere = false;
 public $theshows = Array();
 
 function __construct(){
 
-
-		$this->getjson($this->url);
+		$this->cache_init();
+		$this->get_json($this->url);
 
 }//end construct
 
-	public function getjson($url){
+	public function cache_init(){
+		//if we are running in GAE then lets use memcache
+		if(isset($_SERVER['APPLICATION_ID'])){
+			$this->key = 'ravinia-mem';
+		    $this->memcache = new Memcache;
+		    $this->cache = "memcache";
+		}else{
+			$this->cache = "file";
+		}
+		return true;
+	}//end cache_init
 
-		if(file_exists($this->json_cache_file) && (time() - filemtime($this->json_cache_file) < ($this->cache_time * 60 * 60))) {
-		$this->today($this->json_cache_file);
-		} else {
+	public function get_cache(){
 
-			$ch = curl_init($url);
-			curl_setopt($ch, CURLOPT_POST, 1);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, array());
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			$results = curl_exec($ch);
-			curl_close($ch);
-			file_put_contents($this->json_cache_file, $results);
-			$this->today($this->json_cache_file);
+		if($this->cache == "memcache"){
+			$this->cache_data = $this->memcache->get($this->cache_key);
+			return $this->cache_data;	
+		}else{
+			$this->cache_data = file_get_contents($this->json_cache_file);
+			return $this->cache_data;
+		}
+		$this->cache_data=false;
+		return $this->cache_data;
+	}//end get_cache
+
+	public function save_cache($results){
+
+		if($this->cache == "memcache"){
+			$this->memcache->set($this->cache_key, $results);
+			return true;
+		}else{
+			$this->cache_data = file_put_contents($this->json_cache_file, $results);
+			return true;
 		}
 
+		return false;
+
+	}//end save_cache
+
+	public function get_json($url){
+
+        if ($this->cache_data === false) {
+
+		$post_data = ['data' => 'this', 'data2' => 'that']; //other end is expecting some kind of data
+		$post_data = http_build_query($post_data);
+		$context = [
+		'http' => [
+		'method' => 'POST',
+		'header' => "custom-header: custom-value\r\n" .
+		"custom-header-two: custome-value-2\r\n",
+		'content' => $post_data
+		]
+		];
+		$context = stream_context_create($context);
+		$results = file_get_contents($this->url, false, $context);
+
+		$this->save_cache($results);
+
+		$this->today();
+
+    }else{
+    	$this->today();
+    }
+
+	}//end get_json
 
 
-	}
-
-	public function today($data){
-		$js = json_decode(file_get_contents($data));
+	public function today(){
+		$data = $this->get_cache();
+		$js = json_decode($data);
 		$today = date("l M j");
-
 		foreach($js->d as $j=>$k){
 		if($k->ShowDate == $today){
 			$this->isthere = true;
