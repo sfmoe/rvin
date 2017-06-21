@@ -4,8 +4,7 @@
 Check if there is a ravinia concert today.
 By: Moe Martinez
 Url: http://github.com/sfmoe/rvin
-ravinia has this getcurrentshows json file here:
-https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows that you get via POST
+ravinia has a script tag inside https://ravinia.org/Calendar with all shows listed in them in JSON
 */
 
 Class Rav{
@@ -20,7 +19,7 @@ private $cache_key = "RAV_MEM_KEY";
 private $cache_data = false;
 
 
-public $url = "https://www.ravinia.org/MobileService2/Shows.svc/GetCurrentShows";
+public $url = "https://www.ravinia.org/Calendar";
 public $isthere = false;
 public $theshows = Array();
 
@@ -74,20 +73,34 @@ function __construct(){
 
         if ($this->cache_data === false) {
 
-		$post_data = ['data' => 'this', 'data2' => 'that']; //other end is expecting some kind of data
-		$post_data = http_build_query($post_data);
-		$context = [
-		'http' => [
-		'method' => 'POST',
-		'header' => "custom-header: custom-value\r\n" .
-		"custom-header-two: custome-value-2\r\n",
-		'content' => $post_data
-		]
-		];
-		$context = stream_context_create($context);
-		$results = file_get_contents($this->url, false, $context);
+		
+		$html = file_get_contents($url);
 
-		$this->save_cache($results);
+
+		$dom = new DOMDocument();
+		
+		libxml_use_internal_errors(TRUE);
+
+		$dom->loadHTML($html);
+
+		libxml_clear_errors();
+
+
+		$r = new DOMXPath($dom);
+
+		$nodeList = $r->query( '//script[contains(.,"var shows =")]' );
+
+
+		if($nodeList->length > 0){
+		preg_match('#var shows \\=(.+)toggleDisplayOptions\\(true\\);#s',$nodeList[0]->nodeValue,$matches);
+		$clean_match = trim($matches[1]);
+		$clean_match = substr($clean_match, 1);
+		$clean_match = substr($clean_match, 0, -2);
+		$clean_match = "{\"d\":[".$clean_match."]}";
+		}
+
+
+		$this->save_cache($clean_match);
 
 		$this->today();
 
@@ -100,8 +113,14 @@ function __construct(){
 
 	public function today(){
 		$data = $this->get_cache();
+
+	
 		$js = json_decode($data);
+
+		
 		$today = date("l M j");
+		//uncomment to test with a YES date
+		//$today = date("l M j", strtotime("Saturday Jun 18"));
 		foreach($js->d as $j=>$k){
 		if($k->ShowDate == $today){
 			$this->isthere = true;
